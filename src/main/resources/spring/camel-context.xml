@@ -2,12 +2,53 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring       https://camel.apache.org/schema/spring/camel-spring-2.23.3.xsd">
     <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
-        <route id="simple-route">
+        <!--<route id="simple-route">
             <from id="route-timer" uri="timer://foo?period=1000"/>
             <setBody id="route-setBody">
                 <simple>Hello World 5 from camel-context.xml</simple>
             </setBody>
             <log id="route-log" message=">>> ${body}"/>
+            <to id="mqtt-send" uri="mqtt:mqtt1?host=tcp://broker.emqx.io:1883&amp;publishTopicName=camel/mqtt/test"/>
+        </route>-->
+        <route id="from-file">
+            <from uri="file:/tmp?fileName=book.json"/>
+            <to uri="file:/tmp?fileName=output.json"/>
+            <to uri="mqtt:mqtt1?host=tcp://broker.emqx.io:1883&amp;publishTopicName=camel/mqtt/test"/>
+        </route>
+        <route id="mqtt-route">
+            <from id="mqtt-in" uri="mqtt:foo?host=tcp://broker.emqx.io:1883&amp;subscribeTopicNames=camel/mqtt/test"/>
+            <choice>
+                <when>
+                    <jsonpath>$.book[?(@.price &lt; 10)]</jsonpath>
+                    <to uri="direct:cheap"/>
+                </when>
+                <when>
+                    <jsonpath>$.book[?(@.price &lt; 30)]</jsonpath>
+                        <to uri="direct:average"/>
+                </when>
+                <otherwise>
+                    <to uri="direct:expensive"/>
+                </otherwise>
+            </choice>
+            <unmarshal>
+                <json library="Gson" unmarshalTypeName="org.mycompany.MyData"/>
+            </unmarshal>
+            <log message="Received book: ${body.book[0].title} by ${body.book[0].price}"/>
+        </route>
+        <route id="cheap-route">
+            <from uri="direct:cheap"/>
+            <convertBodyTo type="String"/>
+            <log message="it's cheap ${body}"/>
+        </route>
+        <route id="average-route">
+            <from uri="direct:average"/>
+            <convertBodyTo type="String"/>
+            <log message="it's average ${body}"/>
+        </route>
+        <route id="expensive-route">
+            <from uri="direct:expensive"/>
+            <convertBodyTo type="String"/>
+            <log message="it's expensive ${body}"/>
         </route>
     </camelContext>
 </beans>
