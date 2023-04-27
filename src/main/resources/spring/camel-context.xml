@@ -1,15 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring       https://camel.apache.org/schema/spring/camel-spring-2.23.3.xsd">
+    <bean id="analyzer" class="org.mycompany.SentimentAnalysisProcessor"/>
     <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
-        <!--<route id="simple-route">
+<!--
+        <route id="simple-route">
             <from id="route-timer" uri="timer://foo?period=1000"/>
             <setBody id="route-setBody">
                 <simple>Hello World 5 from camel-context.xml</simple>
             </setBody>
             <log id="route-log" message=">>> ${body}"/>
             <to id="mqtt-send" uri="mqtt:mqtt1?host=tcp://broker.emqx.io:1883&amp;publishTopicName=camel/mqtt/test"/>
-        </route>-->
+        </route>
+        <route id="route-timer">
+            <from uri="timer://foo?period=10000"/>
+            <to uri="direct:twitter-queue"/>
+        </route>
+-->        
+        <route id="from-twitter">
+<!--
+            <from uri="direct:twitter-queue"/>
+            <to uri="twitter-search:redhat?count=100&amp;consumerKey={{twitter.key}}&amp;consumerSecret={{twitter.secret}}&amp;accessToken={{twitter.accessToken}}&amp;accessTokenSecret={{twitter.accessSecret}}"/>
+            <from uri="twitter-search:redhat?count=100&amp;type=polling&amp;delay=30&amp;consumerKey={{twitter.key}}&amp;consumerSecret={{twitter.secret}}&amp;accessToken={{twitter.accessToken}}&amp;accessTokenSecret={{twitter.accessSecret}}"/>
+            <from uri="twitter-streaming:FILTER?keywords=Redhat&amp;count=100&amp;consumerKey={{twitter.key}}&amp;consumerSecret={{twitter.secret}}&amp;accessToken={{twitter.accessToken}}&amp;accessTokenSecret={{twitter.accessSecret}}"/>
+-->
+            <from uri="twitter-search:redhat?count=100&amp;consumerKey={{twitter.key}}&amp;consumerSecret={{twitter.secret}}&amp;accessToken={{twitter.accessToken}}&amp;accessTokenSecret={{twitter.accessSecret}}"/>
+            <log message=">>> ${body.text}"/>
+            <setBody>
+                <simple>${body.text}</simple>
+            </setBody>
+            <to uri="direct:sentiment"/>
+        </route>
+        <route id="sentimentAnalysis">
+            <from uri="direct:sentiment"/>
+            <pipeline>
+                <to uri="log:Received ${body}"/>
+                <to uri="bean:analyzer"/>
+                <to uri="mqtt:fool?host=tcp://broker.emqx.io:1883&amp;publishTopicName=camel/mqtt/sentiment"/>
+            </pipeline>
+        </route>
         <route id="from-file">
             <from uri="file:/tmp?fileName=book.json"/>
             <to uri="file:/tmp?fileName=output.json"/>
