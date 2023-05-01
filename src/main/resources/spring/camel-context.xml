@@ -4,6 +4,7 @@
     <bean id="analyzer" class="org.mycompany.SentimentAnalysisProcessor"/>
     <bean id="saAggregationStrategy" class="org.mycompany.SAAggregationStrategy"/>
     <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
+    <restConfiguration component="spark-rest" port="9091"/>
 <!--
         <route id="simple-route">
             <from id="route-timer" uri="timer://foo?period=1000"/>
@@ -17,14 +18,35 @@
             <from uri="timer://foo?period=10000"/>
             <to uri="direct:twitter-queue"/>
         </route>
--->        
+-->
+        <rest path="/twitterAnalyzer">
+            <get uri="/search/{keyword}">
+                <to uri="direct:searchTwitter-queue"/>
+            </get>
+        </rest>
+
+        <route id="searchTwitter-route">
+            <from uri="direct:searchTwitter-queue"/>
+            <setHeader headerName="CamelTwitterKeywords">
+                <simple>${header.keyword}</simple>
+            </setHeader>
+            <to uri="twitter-search?count=100&amp;consumerKey={{twitter.key}}&amp;consumerSecret={{twitter.secret}}&amp;accessToken={{twitter.accessToken}}&amp;accessTokenSecret={{twitter.accessSecret}}"/>
+            <log message="${body}"/>
+            <split streaming="true">
+                <simple>${body}</simple>
+                <to uri="direct:enrichQueue"/>
+            </split>
+        </route>
+<!--
         <route id="from-twitter">
+-->
 <!--
             <from uri="direct:twitter-queue"/>
             <to uri="twitter-search:redhat?count=100&amp;consumerKey={{twitter.key}}&amp;consumerSecret={{twitter.secret}}&amp;accessToken={{twitter.accessToken}}&amp;accessTokenSecret={{twitter.accessSecret}}"/>
             <from uri="twitter-search:redhat?count=100&amp;type=polling&amp;delay=30&amp;consumerKey={{twitter.key}}&amp;consumerSecret={{twitter.secret}}&amp;accessToken={{twitter.accessToken}}&amp;accessTokenSecret={{twitter.accessSecret}}"/>
             <from uri="twitter-streaming:FILTER?keywords=Redhat&amp;count=100&amp;consumerKey={{twitter.key}}&amp;consumerSecret={{twitter.secret}}&amp;accessToken={{twitter.accessToken}}&amp;accessTokenSecret={{twitter.accessSecret}}"/>
 -->
+<!--
             <from uri="twitter-search:redhat?count=100&amp;consumerKey={{twitter.key}}&amp;consumerSecret={{twitter.secret}}&amp;accessToken={{twitter.accessToken}}&amp;accessTokenSecret={{twitter.accessSecret}}"/>
             <log message=">>> ${body.text}"/>
             <log message=">>> ${body}"/>
@@ -34,16 +56,9 @@
             <log message=">>> ${body.user.name}"/>
             <log message=">>> ${body.user.location}"/>
             <log message=">>> ${body.user.favouritesCount}"/>
-<!--
-            <setBody>
-                <simple>${body.text}</simple>
-            </setBody>
--->
-<!--
-            <to uri="direct:sentiment"/>
--->
             <to uri="direct:enrichQueue"/>
         </route>
+-->
         <route id="enrichRoute">
             <from uri="direct:enrichQueue"/>
             <log message="Before enrich >>> ${body}"/>
