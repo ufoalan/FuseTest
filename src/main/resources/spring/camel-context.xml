@@ -2,6 +2,7 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring       https://camel.apache.org/schema/spring/camel-spring-2.23.3.xsd">
     <bean id="analyzer" class="org.mycompany.SentimentAnalysisProcessor"/>
+    <bean id="saAggregationStrategy" class="org.mycompany.SAAggregationStrategy"/>
     <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
 <!--
         <route id="simple-route">
@@ -26,19 +27,54 @@
 -->
             <from uri="twitter-search:redhat?count=100&amp;consumerKey={{twitter.key}}&amp;consumerSecret={{twitter.secret}}&amp;accessToken={{twitter.accessToken}}&amp;accessTokenSecret={{twitter.accessSecret}}"/>
             <log message=">>> ${body.text}"/>
+            <log message=">>> ${body}"/>
+            <log message=">>> ${body.geoLocation}"/>
+            <log message=">>> ${body.retweetCount}"/>
+            <log message=">>> ${body.favoriteCount}"/>
+            <log message=">>> ${body.user.name}"/>
+            <log message=">>> ${body.user.location}"/>
+            <log message=">>> ${body.user.favouritesCount}"/>
+<!--
             <setBody>
                 <simple>${body.text}</simple>
             </setBody>
+-->
+<!--
             <to uri="direct:sentiment"/>
+-->
+            <to uri="direct:enrichQueue"/>
+        </route>
+        <route id="enrichRoute">
+            <from uri="direct:enrichQueue"/>
+            <log message="Before enrich >>> ${body}"/>
+            <enrich strategyRef="saAggregationStrategy">
+                <constant>direct:sentiment</constant>
+            </enrich>
+            <!-- It's important to marshal the object into json before sending to queue. Or else it won't work -->
+            <marshal>
+                <json library="Jackson"/>
+            </marshal>
+            <log message="After enrich >>> ${body}"/>
+            <to uri="mqtt:fool?host=tcp://broker.emqx.io:1883&amp;publishTopicName=camel/mqtt/sentiment"/>
         </route>
         <route id="sentimentAnalysis">
             <from uri="direct:sentiment"/>
             <pipeline>
                 <to uri="log:Received ${body}"/>
+                <setBody>
+                    <simple>${body.text}</simple>
+                </setBody>
                 <to uri="bean:analyzer"/>
+<!--
+                <marshal>
+                    <json library="Jackson"/>
+                </marshal>    
                 <to uri="mqtt:fool?host=tcp://broker.emqx.io:1883&amp;publishTopicName=camel/mqtt/sentiment"/>
+-->
+                <log message="${body}"/>
             </pipeline>
         </route>
+<!--
         <route id="from-file">
             <from uri="file:/tmp?fileName=book.json"/>
             <to uri="file:/tmp?fileName=output.json"/>
@@ -79,5 +115,6 @@
             <convertBodyTo type="String"/>
             <log message="it's expensive ${body}"/>
         </route>
+-->
     </camelContext>
 </beans>

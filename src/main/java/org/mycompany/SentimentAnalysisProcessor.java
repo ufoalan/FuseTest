@@ -2,6 +2,7 @@ package org.mycompany;
 
 import org.apache.camel.*;
 import org.apache.camel.util.ExchangeHelper;
+import org.json.simple.JSONObject;
 
 public class SentimentAnalysisProcessor implements Processor {
         
@@ -17,11 +18,17 @@ public class SentimentAnalysisProcessor implements Processor {
     {
         // Insert code that gets executed *before* delegating
         // to the next processor in the chain.
+        JSONObject obj = new JSONObject();
         Message in = exchange.getIn();
+        Message out = exchange.getOut();
         String tweet = in.getBody(String.class);
         String sentiment = SentimentAnalyzer.findSentiment(tweet);
         System.out.println(tweet + ", " + sentiment);
-        in.setBody(tweet + ": " + sentiment);
+        obj.put("sentiment", sentiment);
+        System.out.println(obj.toJSONString());
+//        in.setBody(tweet + ": " + sentiment);
+        in.setBody(obj);
+        out.setBody(obj);
         if(sentiment.equalsIgnoreCase("Neutral")){
             num_neutral++;
         }

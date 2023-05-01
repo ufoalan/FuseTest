@@ -63,6 +63,11 @@
       <version>2.23.2.fuse-7_11_1-00015-redhat-00002</version>
       <!-- use the same version as your Camel core version -->
     </dependency>
+        <dependency>
+      <groupId>org.apache.camel</groupId>
+      <artifactId>camel-jackson</artifactId>
+      <version>${camel.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.camel</groupId>
       <artifactId>camel-jsonpath</artifactId>
