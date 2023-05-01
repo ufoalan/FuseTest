@@ -4,7 +4,7 @@
     <bean id="analyzer" class="org.mycompany.SentimentAnalysisProcessor"/>
     <bean id="saAggregationStrategy" class="org.mycompany.SAAggregationStrategy"/>
     <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
-    <restConfiguration component="spark-rest" port="9091"/>
+    <restConfiguration component="spark-rest" port="8080"/>
 <!--
         <route id="simple-route">
             <from id="route-timer" uri="timer://foo?period=1000"/>
