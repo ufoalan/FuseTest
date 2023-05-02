@@ -4,7 +4,7 @@
     <bean id="analyzer" class="org.mycompany.SentimentAnalysisProcessor"/>
     <bean id="saAggregationStrategy" class="org.mycompany.SAAggregationStrategy"/>
     <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
-    <restConfiguration component="servlet"/>
+    <restConfiguration component="servlet" bindingMode="auto"/>
 <!--
     <restConfiguration component="spark-rest" port="9091"/>
         <route id="simple-route">
